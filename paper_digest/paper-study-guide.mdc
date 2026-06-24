@@ -1,0 +1,81 @@
+---
+description: Create an interactive, gated study guide for a research paper
+alwaysApply: true
+---
+
+# Creating a Study Guide for a Given Paper
+
+Trigger this workflow whenever the user asks for a **study guide** for a paper (phrases like: "create a study guide", "help me master this paper", "make a guide to test my understanding", "section by section", etc.).
+
+This is **distinct from** the "paper digest" workflow (which is for presentations and produces a summary with answers). A study guide is a **teaching tool**: it omits answers and gates progression on demonstrated mastery.
+
+## Steps
+
+1. **Locate the paper.** Use the same heuristics as `paper-digestion`: prefer `main.tex` / `paper.tex` in the indicated folder; fall back to PDF only to disambiguate. Read the source fully before drafting.
+
+2. **Write the guide to `STUDY_GUIDE.md`** in the paper's folder (not the workspace root).
+
+3. **Required structure of `STUDY_GUIDE.md`:**
+   - **Header:** title, authors, field, one-sentence contribution.
+   - **"How to use this guide"** block stating the gating workflow explicitly (see "Gating contract" below).
+   - **Progress Tracker** with one checkbox per section (including appendices).
+   - **Table of Contents** with a 1-line role for each section.
+   - **One block per section** with:
+     - `## Concepts to Nail` — 5–10 bullet points the reader must be able to articulate without looking. Phrase as imperatives or named concepts, not summaries.
+     - `## Test Questions` — 6–12 questions of mixed type (definition, derivation, why-question, comparison, edge case, numerical estimate, reviewer critique). **Never include answers.**
+     - For **results sections**, additionally include `## Key Results to Memorize` and `## Surprising / Important Findings` (1–4 bullets each).
+   - **Appendices** get the same treatment, just shorter.
+   - **Cross-Cutting Final Questions** at the end — 3–5 integration questions reserved for after all sections are closed.
+   - **Reviewer-style critique prompts** as a free-floating block.
+   - **Conventions block** at the end describing the ✅/🟡/🔴 grading shorthand.
+
+4. **Gating contract** (must appear verbatim or near-verbatim in the "How to use this guide" block):
+   - The user reads the section, then attempts the questions.
+   - The user brings answers to the agent for grading.
+   - The agent grades as ✅ / 🟡 / 🔴, asks probing follow-ups on weak answers, and **does not advance to the next section while any 🔴 remains** or fewer than ~80% of answers are ✅/🟡.
+   - The agent updates the Progress Tracker checkbox only after the section is closed.
+
+5. **Field-aware question content.** For cosmology / LSS / CMB papers, ensure questions cover: parameter degeneracies, likelihood/covariance construction, systematics, comparison to Planck/DESI/Euclid, scale dependence. For ML papers: dataset, loss, baselines, ablations, scaling. Adapt similarly for other fields.
+
+6. **Quality checks before announcing the guide is ready:**
+   - Every section in the paper has a study block (no skipped sections, including appendices).
+   - No answers are leaked anywhere (questions only — derivations and clarifications come *in chat*, never in the file).
+   - Numbers are included in Test Questions where the paper reports them (e.g. "reproduce the 1800-bin count").
+   - The gating contract is explicit and unambiguous.
+
+## After writing the guide
+
+Announce to the user:
+- Where the file lives.
+- That you will hold the gate: they read §1, send answers, you grade, and you will *refuse to move on* until §1 is closed.
+- Offer to start with §1 right away.
+
+## What NOT to do
+
+- Do **not** include answers, hints that resolve the answer, or worked solutions in the file.
+- Do **not** advance past a section in the chat even if the user pushes, until the mastery bar is met. Politely refuse and re-ask.
+- Do **not** collapse the appendices into one block — give each appendix its own section.
+- Do **not** duplicate this workflow with the `paper-digestion` skill's output style (no executive summary, no methodological evaluation block in the file body — those belong in a digest, not a study guide).
+
+## Companion codebase add-on
+
+If the user points to a **companion codebase** for the paper (e.g. "this is the code that implements the simulations in the paper"), extend the existing `STUDY_GUIDE.md` in two ways — **do not** create a new file:
+
+1. **Add a top-level section `# Companion Codebase Overview — <name>`** placed *after* the paper-level Table of Contents and *before* §1, containing:
+   - A short paragraph stating what the code is, who maintains it, and any divergences from the paper (e.g. forks that add features beyond the paper's scope — flag these explicitly).
+   - A **file-map table** mapping paper sections to code files + line ranges + a one-line description.
+   - Build/run instructions if non-trivial (`Makefile` modes, parameter files, dependencies).
+   - The **top-level flow** as a numbered list (the function-call sequence in `main`).
+   - A **single function/module to read carefully** with a pseudocode-style outline showing the macro structure, bracketed `#ifdef`s collapsed into pseudo-`IF`s where helpful.
+   - A **naming-gotcha table** when code variables encode non-obvious math (e.g. operator nicknames, FFT normalization conventions).
+   - `## Concepts to Nail (codebase)` — 5–10 bullets specific to the implementation.
+   - `## Test Questions (codebase)` — 8–12 questions that require the reader to *open the source and trace a value through the code*. Prefer "match symbol X in the paper to expression Y in the code" questions over generic ones.
+   - `## Reviewer-style critique prompts (codebase)` — 2–4 bullets on numerical stability, memory, reproducibility, hidden assumptions.
+2. **Add `## Code notes` subsections** inline within the relevant paper sections (typically the Methods / Simulations / Statistics sections and the most mathematically-detailed Appendix). Each `## Code notes` block should:
+   - State exactly **which code file + lines** implement the paper content of that section.
+   - Provide a **paper-symbol → code-variable** table whenever the paper writes formulas in mathematical notation.
+   - Add 2–5 **additional Test Questions** numbered continuing the section's existing questions (so the reader can be graded on code understanding within the same section).
+
+Update the Progress Tracker by adding a separate set of checkboxes labeled "Companion code (read alongside the paper, not gated separately)" so the user knows the code can be consulted in parallel with the paper sections rather than as its own gated section.
+
+When you add this, also update the gating contract in chat: the code notes are *supplementary* to the paper sections — the user does **not** need to master the code questions to advance, but they should at least skim the relevant `## Code notes` block when working on its parent paper section.
